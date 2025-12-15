@@ -246,6 +246,9 @@ else:
                     
                 elif method == 'ssvd':
                     # Use SSVD-based representation
+                    # Recompute SSVD since these variables aren't available in this scope
+                    U_s, sigma_s, Vt_s = svds(user_item_matrix.values, k=n_components)
+                    
                     U_s_trunc = U_s[:, :n_components]
                     sigma_s_trunc = sigma_s[:n_components]
                     Vt_s_trunc = Vt_s[:n_components, :]
@@ -266,6 +269,11 @@ else:
                 
                 elif method == 'nmf':
                     # Use NMF-based representation
+                    # Recompute NMF since W isn't available in this scope
+                    user_item_non_negative = np.clip(user_item_matrix.values, 0, None)
+                    model = NMF(n_components=n_components, random_state=42, max_iter=200)
+                    W = model.fit_transform(user_item_non_negative)
+                    
                     target_user_vector = W[target_user_idx, :]  # User profile in latent space
                     similarities = []
                     

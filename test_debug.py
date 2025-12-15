@@ -1,12 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-"""
-Лабораторная №2: рекомендательные системы
-Реализация рекомендательной системы с использованием SVD, SSVD, NMF и ALS
-Оптимизированная версия для работы с большими данными
-"""
-
 import numpy as np
 import pandas as pd
 import json
@@ -39,9 +33,7 @@ else:
 
 print(f"ID целевого фильма '{data['movie']}': {target_movie_id}")
 
-if target_movie_id is None:
-    print("Ошибка: Указанный фильм не найден в базе данных!")
-else:
+if target_movie_id is not None:
     print()
     print("="*60)
     print("ЧАСТЬ 1: Рекомендации похожих фильмов")
@@ -88,12 +80,12 @@ else:
     row = [user_to_idx[user] for user in filtered_ratings['userid']]
     col = [movie_to_idx[movie] for movie in filtered_ratings['movieid']]
     data = filtered_ratings['rating'].values
-    sparse_matrix = csr_matrix((data, (row, col)), 
+    sparse_matrix = csr_matrix((data, (row, col)),
                               shape=(len(user_ids), len(movie_ids)))
-    
+
     print(f"Размерность матрицы пользователь-фильм: {sparse_matrix.shape}")
     print()
-    
+
     # Find the column index for our target movie
     if target_movie_id in movie_to_idx:
         target_movie_idx = movie_to_idx[target_movie_id]
@@ -103,13 +95,18 @@ else:
         
         # Apply SSVD - this is more memory efficient than full SVD
         n_components = min(50, min(sparse_matrix.shape) - 1)  # Ensure valid number of components
+        print(f"n_components: {n_components}")
+        print("Before svds call...")
         U, sigma, Vt = svds(sparse_matrix, k=n_components)
+        print("After svds call")
         
         # Sort by singular values in descending order (svds returns them in ascending)
         idx = np.argsort(sigma)[::-1]
         sigma = sigma[idx]
         U = U[:, idx]
         Vt = Vt[idx, :]
+        
+        print("After sorting")
         
         # Plot singular values decay
         plt.figure(figsize=(10, 6))
@@ -291,116 +288,4 @@ else:
     else:
         print(f"Целевой фильм с ID {target_movie_id} не найден в отфильтрованной матрице.")
 
-# Implementation of ALS algorithm (simplified version)
-def als_algorithm(ratings_df, n_factors=20, reg_param=0.01, n_iterations=5):
-    """
-    Implementation of Alternating Least Squares algorithm
-    """
-    print("\n" + "="*60)
-    print("ЧАСТЬ 3: Реализация ALS алгоритма")
-    print("="*60)
-    
-    # Sample a smaller dataset for ALS
-    sample_size = min(10000, len(ratings_df))
-    sampled_ratings = ratings_df.sample(n=sample_size, random_state=42)
-    
-    # Create user and item mappings
-    unique_users = sampled_ratings['userid'].unique()
-    unique_items = sampled_ratings['movieid'].unique()
-    
-    n_users = len(unique_users)
-    n_items = len(unique_items)
-    
-    user_to_idx = {user: idx for idx, user in enumerate(unique_users)}
-    item_to_idx = {item: idx for idx, item in enumerate(unique_items)}
-    idx_to_user = {idx: user for user, idx in user_to_idx.items()}
-    idx_to_item = {idx: item for item, idx in item_to_idx.items()}
-    
-    # Create rating matrix
-    R = np.zeros((n_users, n_items))
-    for _, row in sampled_ratings.iterrows():
-        u_idx = user_to_idx[row['userid']]
-        i_idx = item_to_idx[row['movieid']]
-        R[u_idx, i_idx] = row['rating']
-    
-    # Initialize user and item factors randomly
-    U = np.random.normal(0, 0.1, (n_users, n_factors))
-    V = np.random.normal(0, 0.1, (n_items, n_factors))
-    
-    lambda_reg = reg_param
-    
-    print(f"Размерности: U={U.shape}, V={V.shape}")
-    print(f"Количество факторов: {n_factors}, регуляризация: {lambda_reg}, итераций: {n_iterations}")
-    print(f"Размер выборки для ALS: {sample_size} рейтингов")
-    
-    # ALS iterations
-    for iteration in range(n_iterations):
-        print(f"Iteration {iteration + 1}/{n_iterations}")
-        
-        # Update user factors
-        for u in range(n_users):
-            # Items rated by user u
-            rated_items = R[u, :] != 0
-            if np.any(rated_items):
-                V_rated = V[rated_items, :]
-                ratings_u = R[u, :][rated_items]
-                
-                A = V_rated.T @ V_rated + lambda_reg * np.eye(n_factors)
-                b = V_rated.T @ ratings_u
-                U[u, :] = np.linalg.solve(A, b)
-        
-        # Update item factors
-        for i in range(n_items):
-            # Users who rated item i
-            rated_by_users = R[:, i] != 0
-            if np.any(rated_by_users):
-                U_rated = U[rated_by_users, :]
-                ratings_i = R[:, i][rated_by_users]
-                
-                A = U_rated.T @ U_rated + lambda_reg * np.eye(n_factors)
-                b = U_rated.T @ ratings_i
-                V[i, :] = np.linalg.solve(A, b)
-    
-    print("ALS алгоритм завершен.")
-    
-    # Since we used a sample, let's see if our target user/movie are in the sample
-    if data['user'] in user_to_idx and target_movie_id in item_to_idx:
-        target_user_idx = user_to_idx[data['user']]
-        target_movie_idx = item_to_idx[target_movie_id]
-        predicted_rating = np.dot(U[target_user_idx, :], V[target_movie_idx, :])
-        
-        actual_ratings = sampled_ratings[(sampled_ratings['userid'] == data['user']) & 
-                                       (sampled_ratings['movieid'] == target_movie_id)]
-        
-        if len(actual_ratings) > 0:
-            actual_rating = actual_ratings.iloc[0]['rating']
-            print(f"\nПрогноз для пользователя {data['user']} и фильма '{data['movie']}':")
-            print(f"Предсказанный рейтинг: {predicted_rating:.4f}")
-            print(f"Фактический рейтинг: {actual_rating}")
-        else:
-            print(f"\nПрогноз для пользователя {data['user']} и фильма '{data['movie']}':")
-            print(f"Предсказанный рейтинг: {predicted_rating:.4f}")
-            print("Фактический рейтинг: отсутствует в выборке")
-    else:
-        print(f"\nПользователь {data['user']} или фильм '{data['movie']}' не попали в выборку для ALS.")
-    
-    return U, V, user_to_idx, item_to_idx
-
-
-# Run ALS algorithm if target movie exists
-if target_movie_id is not None:
-    U_als, V_als, user_to_idx_als, item_to_idx_als = als_algorithm(ratings, n_factors=20, reg_param=0.01, n_iterations=5)
-    
-    print("\n" + "="*60)
-    print("ВЫВОДЫ:")
-    print("="*60)
-    print("1. SSVD и NMF - методы матричного разложения позволяют находить")
-    print("   скрытые паттерны в пользовательских предпочтениях и делать рекомендации.")
-    print("2. ALS алгоритм эффективно оптимизирует факторы пользователей и предметов,")
-    print("   минимизируя ошибку прогнозирования рейтингов.")
-    print("3. Все методы показывают разные аспекты сходства между пользователями и фильмами,")
-    print("   что позволяет строить более точные рекомендательные системы.")
-    print("4. Для конкретного фильма 'Seventh Seal, The (Sjunde inseglet, Det) (1957)'")
-    print("   были получены списки похожих фильмов и похожих пользователей.")
-    print("5. Из-за ограничений по памяти пришлось использовать выборку данных,")
-    print("   что может повлиять на точность рекомендаций.")
+print("Script completed successfully!")
