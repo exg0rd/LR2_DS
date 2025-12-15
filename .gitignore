@@ -1,1 +1,1 @@
-Nothing should be ignored based on the provided file changes, as they only include Python source files (.py) which are legitimate code files to track in version control.
+(funksvd.py is a source file, so no ignores needed)
