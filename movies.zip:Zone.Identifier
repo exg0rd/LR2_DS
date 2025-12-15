@@ -1,0 +1,4 @@
+[ZoneTransfer]
+ZoneId=3
+ReferrerUrl=https://cloudconvert.com/
+HostUrl=https://eu-central.storage.cloudconvert.com/tasks/cf9409bf-c105-4ae7-b2f6-9baaf925fd47/movies.zip?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=cloudconvert-production%2F20251215%2Ffra%2Fs3%2Faws4_request&X-Amz-Date=20251215T173550Z&X-Amz-Expires=86400&X-Amz-Signature=805af58608c1dc9c93c3ee4504730bd93a3740532af535a0374dcb510ee9e025&X-Amz-SignedHeaders=host&response-content-disposition=attachment%3B%20filename%3D%22movies.zip%22&response-content-type=application%2Fzip&x-id=GetObject
